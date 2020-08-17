@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'carMote.ui'
@@ -8,7 +8,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-import time,datetime,threading,thread,socket,select
+import time,datetime,threading,socket,select
 
 class CarMoteConnection(threading.Thread):
 	def __init__(self):
@@ -16,7 +16,7 @@ class CarMoteConnection(threading.Thread):
 		self.running=False
 		self.vel=0
 		self.turn=0
-		self.lastSend=None
+		self.lastSend="0,0"
 	def setVel(self,vel):
 		self.vel=vel
 	def setTurn(self,turn):
@@ -35,16 +35,17 @@ class CarMoteConnection(threading.Thread):
 		while self.running:
 			message=str(self.vel)+","+str(self.turn)
 			if message!="0,0" or self.lastSend!=message:
-				print "sending ",message
-				s.send(message)
+				print("sending ",message)
+				s.sendall(bytes(message,'utf-8'))
 				data = s.recv(BUFF)
-				print data
+				print("Reply: ",data)
 				self.lastSend=message
+                                
 			
 			time.sleep(0.1)
 		s.close()
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtWidgets
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -53,54 +54,53 @@ except AttributeError:
         return s
 
 try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
+    _encoding = QtWidgets.QApplication.UnicodeUTF8
     def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
+        return QtWidgets.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
+        return QtWidgets.QApplication.translate(context, text, disambig)
 
-class Ui_Frame(QtGui.QFrame):
+class Ui_Frame(QtWidgets.QFrame):
 	def __init__(self):
-		QtGui.QFrame.__init__(self)
+		QtWidgets.QFrame.__init__(self)
 	def setupUi(self, Frame,server):
 		self.server=server
 		Frame.setObjectName(_fromUtf8("Frame"))
 		Frame.resize(400, 140)
-		Frame.setFrameShape(QtGui.QFrame.StyledPanel)
-		Frame.setFrameShadow(QtGui.QFrame.Raised)
-		self.btnLeft = QtGui.QPushButton(Frame)
+		Frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
+		Frame.setFrameShadow(QtWidgets.QFrame.Raised)
+		self.btnLeft = QtWidgets.QPushButton(Frame)
 		self.btnLeft.setGeometry(QtCore.QRect(240, 40, 61, 51))
 		self.btnLeft.setObjectName(_fromUtf8("btnLeft"))
-		self.btnForward = QtGui.QPushButton(Frame)
+		self.btnForward = QtWidgets.QPushButton(Frame)
 		self.btnForward.setGeometry(QtCore.QRect(30, 20, 61, 51))
 		self.btnForward.setObjectName(_fromUtf8("btnForward"))
-		self.btnBackwards = QtGui.QPushButton(Frame)
+		self.btnBackwards = QtWidgets.QPushButton(Frame)
 		self.btnBackwards.setGeometry(QtCore.QRect(30, 70, 61, 51))
 		self.btnBackwards.setObjectName(_fromUtf8("btnBackwards"))
-		self.btnRight = QtGui.QPushButton(Frame)
+		self.btnRight = QtWidgets.QPushButton(Frame)
 		self.btnRight.setGeometry(QtCore.QRect(300, 40, 61, 51))
 		self.btnRight.setObjectName(_fromUtf8("btnRight"))
 
 		self.retranslateUi(Frame)
 		QtCore.QMetaObject.connectSlotsByName(Frame)
-	
-		QtCore.QObject.connect(self.btnForward,QtCore.SIGNAL("pressed()"),self.btnForwardAction)
-		QtCore.QObject.connect(self.btnForward,QtCore.SIGNAL("released()"),self.clearVelAction)
-		QtCore.QObject.connect(self.btnBackwards,QtCore.SIGNAL("pressed()"),self.btnBackwardAction)
-		QtCore.QObject.connect(self.btnBackwards,QtCore.SIGNAL("released()"),self.clearVelAction)
+		self.btnForward.pressed.connect(self.btnForwardAction)
+		self.btnForward.released.connect(self.clearVelAction)
+		self.btnBackwards.pressed.connect(self.btnBackwardAction)
+		self.btnBackwards.released.connect(self.clearVelAction)
+		
+		self.btnRight.pressed.connect(self.btnRightAction)
+		self.btnRight.released.connect(self.clearTurnAction)
+		self.btnLeft.pressed.connect(self.btnLeftAction)
+		self.btnLeft.released.connect(self.clearTurnAction)
 
-		QtCore.QObject.connect(self.btnRight,QtCore.SIGNAL("pressed()"),self.btnRightAction)
-		QtCore.QObject.connect(self.btnRight,QtCore.SIGNAL("released()"),self.clearTurnAction)
-		QtCore.QObject.connect(self.btnLeft,QtCore.SIGNAL("pressed()"),self.btnLeftAction)
-		QtCore.QObject.connect(self.btnLeft,QtCore.SIGNAL("released()"),self.clearTurnAction)
-	
 	def keyPressEvent(self,event):
 		k=event.text()
 		if k=="w":
 			self.btnForwardAction()
-			print "FW!"
-		elif k=="x":
+			print("FW!")
+		elif k=="s":
 			self.btnBackwardAction()
 		elif k=="a": 
 			self.btnLeftAction()
@@ -109,7 +109,7 @@ class Ui_Frame(QtGui.QFrame):
 	
 	def keyReleaseEvent(self,event):
 		k=event.text()
-		if k=="w" or k=="x":
+		if k=="w" or k=="s":
 			self.clearVelAction()
 		elif k=="a" or k=="d":
 			self.clearTurnAction()
@@ -143,9 +143,9 @@ if __name__ == "__main__":
 	import sys
 	connection=CarMoteConnection()
 	connection.init()
-	app = QtGui.QApplication(sys.argv)
+	app = QtWidgets.QApplication(sys.argv)
 	Frame = Ui_Frame()
 	Frame.setupUi(Frame,connection)
 	Frame.show()
-	QtCore.QObject.connect(app,QtCore.SIGNAL("aboutToQuit()"),Frame.exit)
+	app.aboutToQuit.connect(Frame.exit)
 	sys.exit(app.exec_())
